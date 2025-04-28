@@ -23,7 +23,7 @@ Modulo para habilitar llamadas y juegos en linea.
 
 #### Instalacion
 
-Instalación：`wget https://raw.githubusercontent.com/powermx/badvpn/master/easyinstall && bash easyinstall`
+Instalación：`wget https://raw.githubusercontent.com/adfastltda/badvpn/master/easyinstall && bash easyinstall`
 
 ##### Uso
 
