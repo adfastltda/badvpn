@@ -1,56 +1,41 @@
 #!/bin/bash
 
-# Cria o script /bin/badvpn
-cat << 'EOF' > /bin/badvpn
-#!/bin/bash
-
-if [ "$1" == "uninstall" ]; then
-    echo 'Desinstalando badvpn...'
-    rm -f /bin/badvpn /bin/badvpn-udpgw
-    echo 'Desinstalação completa.'
-    exit 0
+# Baixar o badvpn-udpgw
+if [ ! -f /bin/badvpn-udpgw ]; then
+    echo -e "\033[1;31mBaixando Badvpn...\033[0m"
+    wget -O /bin/badvpn-udpgw https://raw.githubusercontent.com/powermx/badvpn/master/badvpn-udpgw &>/dev/null
+    chmod +x /bin/badvpn-udpgw
+    echo -e "\033[1;32mBadvpn baixado e instalado em /bin/badvpn-udpgw.\033[0m"
+else
+    echo -e "\033[1;32mBadvpn já está instalado.\033[0m"
 fi
 
-if [ "$1" == "start" ]; then
-    screen -dmS bad badvpn-udpgw --listen-addr 0.0.0.0:7300 --listen-addr 0.0.0.0:7400 --listen-addr 0.0.0.0:7500 --listen-addr 0.0.0.0:7600 --max-clients 1000 --max-connections-for-client 1000 --client-socket-sndbuf 0 --udp-mtu 9000
-    echo 'Badvpn iniciado nas portas 7300, 7400, 7500 e 7600.'
-    exit 0
-fi
+# Criar o serviço systemd
+echo -e "\033[1;31mCriando serviço systemd para Badvpn...\033[0m"
+cat << 'EOF' > /etc/systemd/system/badvpn.service
+[Unit]
+Description=Badvpn UDP Gateway
+After=network.target
 
-if [ "$1" == "stop" ]; then
-    echo 'Parando badvpn...'
-    pkill -f badvpn-udpgw
-    screen -S bad -X quit 2>/dev/null
-    echo 'Badvpn parado.'
-    exit 0
-fi
+[Service]
+ExecStart=/bin/badvpn-udpgw --listen-addr 0.0.0.0:7300 --listen-addr 0.0.0.0:7400 --listen-addr 0.0.0.0:7500 --listen-addr 0.0.0.0:7600 --max-clients 1000 --max-connections-for-client 1000 --client-socket-sndbuf 0 --udp-mtu 9000
+Restart=always
+User=root
+LimitNOFILE=65535
 
-echo "Uso: badvpn {start|stop|uninstall}"
+[Install]
+WantedBy=multi-user.target
 EOF
 
-# Dá permissão de execução
-chmod +x /bin/badvpn
+# Dar reload no systemd e iniciar o serviço
+systemctl daemon-reload
+systemctl enable badvpn
+systemctl start badvpn
 
-# Verifica se já está instalado
-if [ -f /bin/badvpn-udpgw ]; then
-    echo -e "\033[1;32mBadvpn já está instalado.\033[0m"
-    rm -rf easyinstall >/dev/null 2>/dev/null
-    exit 0
-else
-    clear
-fi
-
-# Instalação
-echo -e "\033[1;31m           Instalador Badvpn\n\033[0m"
-echo -e "Baixando badvpn..."
-wget -O /bin/badvpn-udpgw https://raw.githubusercontent.com/powermx/badvpn/master/badvpn-udpgw &>/dev/null
-chmod +x /bin/badvpn-udpgw
-
-echo -e "\033[1;32mInstalação completa.\033[0m"
-echo -e "\033[1;37mComandos disponíveis:\n"
-echo -e "\033[1;31m badvpn start\033[1;37m - Iniciar o Badvpn"
-echo -e "\033[1;31m badvpn stop \033[1;37m - Parar o Badvpn"
-echo -e "\033[1;31m badvpn uninstall \033[1;37m - Desinstalar o Badvpn\033[0m"
-
-# Limpeza
-rm -rf easyinstall >/dev/null 2>/dev/null
+# Mensagem final
+echo -e "\033[1;32mBadvpn instalado e rodando via systemd!\033[0m"
+echo -e "\033[1;37mUse os seguintes comandos para gerenciar o Badvpn:\033[0m"
+echo -e "\033[1;31m systemctl start badvpn\033[0m - \033[1;37mIniciar manualmente\033[0m"
+echo -e "\033[1;31m systemctl stop badvpn\033[0m - \033[1;37mParar o serviço\033[0m"
+echo -e "\033[1;31m systemctl restart badvpn\033[0m - \033[1;37mReiniciar o serviço\033[0m"
+echo -e "\033[1;31m systemctl status badvpn\033[0m - \033[1;37mVer status e logs\033[0m"
