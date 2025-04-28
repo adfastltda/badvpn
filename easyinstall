@@ -1,17 +1,37 @@
 #!/bin/bash
 
-# Baixar o badvpn-udpgw
-if [ ! -f /bin/badvpn-udpgw ]; then
-    echo -e "\033[1;31mBaixando Badvpn...\033[0m"
-    wget -O /bin/badvpn-udpgw https://raw.githubusercontent.com/powermx/badvpn/master/badvpn-udpgw &>/dev/null
-    chmod +x /bin/badvpn-udpgw
-    echo -e "\033[1;32mBadvpn baixado e instalado em /bin/badvpn-udpgw.\033[0m"
-else
-    echo -e "\033[1;32mBadvpn já está instalado.\033[0m"
+# Cores
+VERDE="\033[1;32m"
+VERMELHO="\033[1;31m"
+BRANCO="\033[1;37m"
+RESET="\033[0m"
+
+clear
+echo -e "${VERMELHO}===== Instalador/Atualizador Badvpn =====${RESET}"
+
+# Se já existir, parar e remover antes
+if [ -f /bin/badvpn-udpgw ]; then
+    echo -e "${VERMELHO}Badvpn já detectado. Atualizando...${RESET}"
+
+    # Para o serviço se estiver rodando
+    systemctl stop badvpn 2>/dev/null
+    systemctl disable badvpn 2>/dev/null
+
+    # Remove arquivos antigos
+    rm -f /bin/badvpn-udpgw
+    rm -f /etc/systemd/system/badvpn.service
+
+    # Recarrega o systemd
+    systemctl daemon-reload
 fi
 
-# Criar o serviço systemd
-echo -e "\033[1;31mCriando serviço systemd para Badvpn...\033[0m"
+# Baixar o novo badvpn-udpgw
+echo -e "${BRANCO}Baixando nova versão do Badvpn...${RESET}"
+wget -O /bin/badvpn-udpgw https://raw.githubusercontent.com/powermx/badvpn/master/badvpn-udpgw &>/dev/null
+chmod +x /bin/badvpn-udpgw
+
+# Criar o serviço systemd novamente
+echo -e "${BRANCO}Criando novo serviço systemd para Badvpn...${RESET}"
 cat << 'EOF' > /etc/systemd/system/badvpn.service
 [Unit]
 Description=Badvpn UDP Gateway
@@ -27,15 +47,15 @@ LimitNOFILE=65535
 WantedBy=multi-user.target
 EOF
 
-# Dar reload no systemd e iniciar o serviço
+# Recarregar systemd e iniciar serviço
 systemctl daemon-reload
 systemctl enable badvpn
 systemctl start badvpn
 
 # Mensagem final
-echo -e "\033[1;32mBadvpn instalado e rodando via systemd!\033[0m"
-echo -e "\033[1;37mUse os seguintes comandos para gerenciar o Badvpn:\033[0m"
-echo -e "\033[1;31m systemctl start badvpn\033[0m - \033[1;37mIniciar manualmente\033[0m"
-echo -e "\033[1;31m systemctl stop badvpn\033[0m - \033[1;37mParar o serviço\033[0m"
-echo -e "\033[1;31m systemctl restart badvpn\033[0m - \033[1;37mReiniciar o serviço\033[0m"
-echo -e "\033[1;31m systemctl status badvpn\033[0m - \033[1;37mVer status e logs\033[0m"
+echo -e "${VERDE}Badvpn instalado/atualizado e rodando via systemd!${RESET}"
+echo -e "${BRANCO}Use os seguintes comandos para gerenciar o Badvpn:${RESET}"
+echo -e "${VERMELHO} systemctl start badvpn${RESET} - ${BRANCO}Iniciar manualmente${RESET}"
+echo -e "${VERMELHO} systemctl stop badvpn${RESET} - ${BRANCO}Parar o serviço${RESET}"
+echo -e "${VERMELHO} systemctl restart badvpn${RESET} - ${BRANCO}Reiniciar o serviço${RESET}"
+echo -e "${VERMELHO} systemctl status badvpn${RESET} - ${BRANCO}Ver status e logs${RESET}"
